@@ -1,0 +1,1 @@
+# This is a simple grade calculator that accepts student name and their asscoiated grades with respect to each subject and calculates the average.
