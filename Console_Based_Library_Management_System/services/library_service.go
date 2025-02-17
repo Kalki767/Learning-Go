@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"Console_Based_Library_Management_System/models"
+	"fmt"
 )
 
 type Library struct {
@@ -16,6 +17,7 @@ func NewLibrary() *Library {
 		members: make(map[int]models.Member),
 	}
 }
+
 
 type LibraryManager interface {
 	AddBook(book models.Book) error
@@ -52,8 +54,15 @@ func (l *Library) BorrowBook(bookID int, memberID int) error {
 	if book.Status == "Borrowed" {
 		return errors.New("book already borrowed")
 	}
+	
+	member, ok := l.members[memberID]
+	if !ok {
+		return errors.New("member not found")
+	}
 	book.Status = "Borrowed"
+	member.BorrowedBooks = append(member.BorrowedBooks, book)
 	l.books[bookID] = book
+	l.members[memberID] = member
 	return nil
 }
 
@@ -65,9 +74,21 @@ func (l *Library) ReturnBook(bookID int, memberID int) error {
 	if book.Status == "Available" {
 		return errors.New("book already available")
 	}
-	book.Status = "Available"
-	l.books[bookID] = book
-	return nil
+	member, ok := l.members[memberID]
+	if !ok{
+		return errors.New("member not found")
+	}
+	for i, borrowedBook := range member.BorrowedBooks {
+		if borrowedBook.Id == bookID {
+			member.BorrowedBooks = append(member.BorrowedBooks[:i], member.BorrowedBooks[i+1:]...)
+			fmt.Println("Book returned Successfully")
+			book.Status = "Available"
+			l.books[bookID] = book
+			return nil
+		}
+	}
+	return errors.New("the member doesn't borrow the specified book please make sure that you entered the correct bookId")
+	
 }
 
 func (l *Library) ListAvailableBooks() []models.Book {
@@ -81,12 +102,11 @@ func (l *Library) ListAvailableBooks() []models.Book {
 }
 
 func (l *Library) ListBorrowedBooks(memberID int) []models.Book {
-	var books []models.Book
-	for _, book := range l.books {
-		if book.Status == "Borrowed" {
-			books = append(books, book)
-		}
+	member, ok := l.members[memberID]
+	if !ok {
+		fmt.Println("Member not found")
+		return nil
 	}
-	return books
+	return member.BorrowedBooks
 }
 
